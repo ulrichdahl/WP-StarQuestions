@@ -1,13 +1,14 @@
 <?php
 /*
-Plugin Name: Sc Questions
-Plugin URI: https://github.com/ulrichdahl/sc-questions
-Description: Indsaml spørgsmål med RSI Handle verifikation. Understøtter auto-detektion af browser sprog (DA/EN).
-Version: 1.1
-Author: Ulrich Dahl <ulrich.dahl@gmail.com> / Gemini
-Author URI: https://github.com/ulrichdahl/
-License: GPL2
-*/
+ * Plugin Name: Star Citizen Questions
+ * Plugin URI: https://github.com/ulrichdahl/WP-StarQuestions
+ * Description: Collect questions with RSI Handle verification.
+ * Version: 1.2.0
+ * Author: Ulrich Dahl <ulrich.dahl@gmail.com> / Gemma4
+ * Author URI: https://github.com/ulrichdahl/
+ * Text Domain: leaderboard
+ * License: GPL3
+ */
 
 if (!defined('ABSPATH')) {
 	exit;
@@ -17,6 +18,7 @@ class SC_Questions_Plugin {
 
 	// Gemmer det aktuelle sprog ('da' eller 'en')
 	private $current_lang = 'en';
+    private $menu_slug = 'star-citizen';
 
 	public function __construct() {
 		// Registrer Custom Post Type
@@ -32,25 +34,115 @@ class SC_Questions_Plugin {
 		add_action('pre_get_posts', array($this, 'filter_query'));
 
 		// Eksport funktion
-		add_action('admin_menu', array($this, 'add_export_page'));
-		add_action('admin_post_sc_export_txt', array($this, 'handle_txt_export'));
+        add_action('admin_post_sc_export_txt', array($this, 'handle_txt_export'));
+        add_action('admin_menu', array($this, 'add_export_page'));
+        add_action('admin_menu', function() {
+            global $submenu;
+            if ($this->does_menu_exists()) remove_submenu_page($this->menu_slug, $this->menu_slug);
+            if ( !isset($submenu[$this->menu_slug]) ) return;
+            $items = $submenu[$this->menu_slug];
+            $postsKey = null;
+            $exportKey = null;
+            foreach ($items as $key => $item) {
+                if ($item[2] == 'edit.php?post_type=sc_question') {
+                    $postsKey = $key;
+                }
+                if ($item[2] == 'sc-export') {
+                    $exportKey = $key;
+                }
+            }
+            $postsItem = $items[$postsKey];
+            $exportItem = $items[$exportKey];
+            unset($items[$postsKey]);
+            unset($items[$exportKey]);
+            $items[] = $postsItem;
+            $items[] = $exportItem;
+            $submenu[$this->menu_slug] = array_values($items);
+        }, 999);
+        add_action('admin_head', array($this, 'fix_svg_size'));
 	}
 
-	/**
-	 * OVERSÆTTELSES-MOTOR
-	 * Tjekker browser sprog og returnerer den rette tekst
-	 */
-	private function detect_browser_language() {
-		if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-			$lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
-			// Hvis browseren starter med 'da', sæt til dansk, ellers engelsk
-			$this->current_lang = ($lang === 'da') ? 'da' : 'en';
-		} else {
-			$this->current_lang = 'en';
-		}
-	}
+    private function does_menu_exists() {
+        global $menu;
+        if (!is_array($menu)) {
+            return false;
+        }
+        foreach ( $menu as $item ) {
+            if ( $item[2] == $this->menu_slug ) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	private function get_text($key) {
+    function fix_svg_size() {
+        echo '
+    <style>
+        /* Målret billedet i dit specifikke menupunkt */
+        #toplevel_page_star-citizen .wp-menu-image img {
+            width: 20px !important;   /* WordPress ikoner er 20x20 */
+            height: 20px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Centrer ikonet i cirklen/feltet */
+        #toplevel_page_star-citizen .wp-menu-image {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+';
+    }
+
+    /**
+     * 5. Eksport Funktion
+     */
+    public function add_export_page() {
+        if (!$this->does_menu_exists()) {
+            add_menu_page(
+                    'Star Citizen', // Page title
+                    'Star Citizen', // Menu title
+                    'manage_options', // Capability
+                    $this->menu_slug, // Menu slug
+                    null, // Callback function
+                    plugins_url('sc-questions/assets/scc-ogo.svg', 'sc-questions'), // Icon (WordPress Dashicon)
+                    26
+            );
+        }
+        add_submenu_page(
+                $this->menu_slug,
+                'Export Questions',
+                'Export Questions',
+                'manage_options',
+                'sc-export',
+                array($this, 'render_export_page'),
+                26
+        );
+    }
+
+    public function register_post_type() {
+        register_post_type('sc_question', array(
+                'labels' => array(
+                        'name' => 'Questions',
+                        'singular_name' => 'Question',
+                        'add_new_item' => 'Add a questions',
+                        'search_items' => 'Search for question',
+                ),
+                'public' => false,
+                'show_ui' => true,
+                'show_in_menu' => $this->menu_slug,
+                'supports' => array('title', 'editor', 'custom-fields'),
+                'menu_icon' => 'dashicons-format-chat',
+                'menu_position' => 25,
+        ));
+    }
+
+    private function get_text($key) {
 		// Ordbog
 		$translations = array(
 			'en' => array(
@@ -90,31 +182,7 @@ class SC_Questions_Plugin {
 		return isset($translations[$this->current_lang][$key]) ? $translations[$this->current_lang][$key] : $key;
 	}
 
-	/**
-	 * 1. Opret Post Type
-	 */
-	public function register_post_type() {
-		register_post_type('sc_question', array(
-			'labels' => array(
-				'name' => 'SC Spørgsmål',
-				'singular_name' => 'Spørgsmål',
-				'add_new_item' => 'Tilføj nyt spørgsmål',
-				'search_items' => 'Søg i spørgsmål',
-			),
-			'public' => false,
-			'show_ui' => true,
-			'supports' => array('title', 'editor', 'custom-fields'),
-			'menu_icon' => 'dashicons-format-chat',
-		));
-	}
-
-	/**
-	 * 2. Shortcode Logic
-	 */
 	public function render_shortcode($atts) {
-		// 1. Detekter sprog hver gang shortcoden køres
-		$this->detect_browser_language();
-
 		$atts = shortcode_atts(array(
 			'group' => 'default',
 			'section' => 'questions',
@@ -178,7 +246,7 @@ class SC_Questions_Plugin {
 					<?php while ($query->have_posts()) : $query->the_post();
 						$handle = get_post_meta(get_the_ID(), 'sc_handle', true);
 						?>
-						<div class="sc-question wp-block wp-block-kubio-column  position-relative wp-block-kubio-column__container d-flex h-col-lg-auto h-col-md-auto h-col-auto" data-kubio="kubio/column"><div class="position-relative wp-block-kubio-column__inner style-local-101-inner d-flex h-flex-basis h-px-lg-3 v-inner-lg-3 h-px-md-3 v-inner-md-3 h-px-3 v-inner-3"><div class="background-wrapper"><div class="background-layer background-layer-media-container-lg"></div><div class="background-layer background-layer-media-container-md"></div><div class="background-layer background-layer-media-container"></div></div><div class="position-relative wp-block-kubio-column__align style-local-101-align h-y-container h-column__content h-column__v-align flex-basis-100 align-self-lg-center align-self-md-center align-self-center"><ul class="wp-block wp-block-kubio-iconlist  position-relative wp-block-kubio-iconlist__outer ul-list-icon list-type-vertical-on-desktop list-type-vertical-on-tablet list-type-vertical-on-mobile" data-kubio="kubio/iconlist"><li class="wp-block wp-block-kubio-iconlistitem  position-relative wp-block-kubio-iconlistitem__item" data-kubio="kubio/iconlistitem"><div class="first-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__text-wrapper"><span class="h-svg-icon wp-block-kubio-iconlistitem__icon" name="font-awesome/question-circle" style="fill:rgba(var(--kubio-color-3),1);width: 24px;height: 24px;"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="question-circle" viewBox="0 0 1536 1896.0833"><path d="M896 1376v-192q0-14-9-23t-23-9H672q-14 0-23 9t-9 23v192q0 14 9 23t23 9h192q14 0 23-9t9-23zm256-672q0-88-55.5-163T958 425t-170-41q-243 0-371 213-15 24 8 42l132 100q7 6 19 6 16 0 25-12 53-68 86-92 34-24 86-24 48 0 85.5 26t37.5 59q0 38-20 61t-68 45q-63 28-115.5 86.5T640 1020v36q0 14 9 23t23 9h192q14 0 23-9t9-23q0-19 21.5-49.5T972 957q32-18 49-28.5t46-35 44.5-48 28-60.5 12.5-81zm384 192q0 209-103 385.5T1153.5 1561 768 1664t-385.5-103T103 1281.5 0 896t103-385.5T382.5 231 768 128t385.5 103T1433 510.5 1536 896z"></path></svg></span><span class="position-relative wp-block-kubio-iconlistitem__text" style="padding:4px"><a href="https://robertsspaceindustries.com/en/citizens/<?php echo esc_html($handle); ?>" target="_blank"><?php echo esc_html($handle); ?></a></span></div><div class="last-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div></li></ul><p class="sc-question wp-block wp-block-kubio-text  position-relative wp-block-kubio-text__text" data-kubio="kubio/text"><?php the_content(); ?></p></div></div></div>
+						<div class="sc-question wp-block wp-block-kubio-column  position-relative wp-block-kubio-column__container d-flex h-col-lg-auto h-col-md-auto h-col-auto" data-kubio="kubio/column"><div class="position-relative wp-block-kubio-column__inner style-local-101-inner d-flex h-flex-basis h-px-lg-3 v-inner-lg-3 h-px-md-3 v-inner-md-3 h-px-3 v-inner-3"><div class="background-wrapper"><div class="background-layer background-layer-media-container-lg"></div><div class="background-layer background-layer-media-container-md"></div><div class="background-layer background-layer-media-container"></div></div><div class="position-relative wp-block-kubio-column__align style-local-101-align h-y-container h-column__content h-column__v-align flex-basis-100 align-self-lg-center align-self-md-center align-self-center"><ul class="wp-block wp-block-kubio-iconlist  position-relative wp-block-kubio-iconlist__outer ul-list-icon list-type-vertical-on-desktop list-type-vertical-on-tablet list-type-vertical-on-mobile" data-kubio="kubio/iconlist"><li class="wp-block wp-block-kubio-iconlistitem  position-relative wp-block-kubio-iconlistitem__item" data-kubio="kubio/iconlistitem"><div class="first-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__text-wrapper"><span class="h-svg-icon wp-block-kubio-iconlistitem__icon" name="font-awesome/question-circle" style="width: 24px;height: 24px;"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="question-circle" viewBox="0 0 1536 1896.0833"><path d="M896 1376v-192q0-14-9-23t-23-9H672q-14 0-23 9t-9 23v192q0 14 9 23t23 9h192q14 0 23-9t9-23zm256-672q0-88-55.5-163T958 425t-170-41q-243 0-371 213-15 24 8 42l132 100q7 6 19 6 16 0 25-12 53-68 86-92 34-24 86-24 48 0 85.5 26t37.5 59q0 38-20 61t-68 45q-63 28-115.5 86.5T640 1020v36q0 14 9 23t23 9h192q14 0 23-9t9-23q0-19 21.5-49.5T972 957q32-18 49-28.5t46-35 44.5-48 28-60.5 12.5-81zm384 192q0 209-103 385.5T1153.5 1561 768 1664t-385.5-103T103 1281.5 0 896t103-385.5T382.5 231 768 128t385.5 103T1433 510.5 1536 896z"></path></svg></span><span class="position-relative wp-block-kubio-iconlistitem__text" style="padding:4px"><a href="https://robertsspaceindustries.com/en/citizens/<?php echo esc_html($handle); ?>" target="_blank"><?php echo esc_html($handle); ?></a></span></div><div class="last-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div></li></ul><p class="sc-question wp-block wp-block-kubio-text  position-relative wp-block-kubio-text__text" data-kubio="kubio/text"><?php the_content(); ?></p></div></div></div>
 					<?php endwhile; ?>
 				</div>
 			<?php else: ?>
@@ -190,9 +258,6 @@ class SC_Questions_Plugin {
 		return ob_get_clean();
 	}
 
-	/**
-	 * 3. Håndter indsendelse
-	 */
 	private function handle_form_submission($group) {
 		$handle = sanitize_text_field($_POST['sc_handle']);
 		$question = sanitize_textarea_field($_POST['sc_question']);
@@ -303,24 +368,15 @@ class SC_Questions_Plugin {
 
 	public function filter_query($query) {
 		global $pagenow;
-		if (is_admin() && $pagenow === 'edit.php' && isset($_GET['filter_group']) && $_GET['filter_group'] != '' && $query->query['post_type'] === 'sc_question') {
+		if (is_admin()
+            && $pagenow === 'edit.php'
+            && isset($_GET['filter_group'])
+            && $_GET['filter_group'] != ''
+            && isset($query->query['post_type'])
+            && $query->query['post_type'] === 'sc_question') {
 			$query->set('meta_key', 'sc_group');
 			$query->set('meta_value', sanitize_text_field($_GET['filter_group']));
 		}
-	}
-
-	/**
-	 * 5. Eksport Funktion
-	 */
-	public function add_export_page() {
-		add_submenu_page(
-			'edit.php?post_type=sc_question',
-			'Export Questions',
-			'Export to TXT',
-			'manage_options',
-			'sc-export',
-			array($this, 'render_export_page')
-		);
 	}
 
 	public function render_export_page() {
