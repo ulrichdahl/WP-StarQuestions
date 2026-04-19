@@ -6,40 +6,41 @@
  * Version: 1.2.0
  * Author: Ulrich Dahl <ulrich.dahl@gmail.com> / Gemma4
  * Author URI: https://github.com/ulrichdahl/
- * Text Domain: leaderboard
+ * Text Domain: sc-questions
+ * Domain Path: /languages
  * License: GPL3
  */
 
 if (!defined('ABSPATH')) {
-	exit;
+    exit;
 }
 
 class SC_Questions_Plugin {
 
-	// Gemmer det aktuelle sprog ('da' eller 'en')
-	private $current_lang = 'en';
     private $menu_slug = 'star-citizen';
 
-	public function __construct() {
-		// Registrer Custom Post Type
-		add_action('init', array($this, 'register_post_type'));
+    public function __construct() {
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
 
-		// Shortcode
-		add_shortcode('sc_questions', array($this, 'render_shortcode'));
+        // Registrer Custom Post Type
+        add_action('init', array($this, 'register_post_type'));
 
-		// Admin kolonner og filtre
-		add_filter('manage_sc_question_posts_columns', array($this, 'set_custom_columns'));
-		add_action('manage_sc_question_posts_custom_column', array($this, 'custom_column_data'), 10, 2);
-		add_action('restrict_manage_posts', array($this, 'filter_by_group'));
-		add_action('pre_get_posts', array($this, 'filter_query'));
+        // Shortcode
+        add_shortcode('sc_questions', array($this, 'render_shortcode'));
 
-		// Eksport funktion
+        // Admin kolonner og filtre
+        add_filter('manage_sc_question_posts_columns', array($this, 'set_custom_columns'));
+        add_action('manage_sc_question_posts_custom_column', array($this, 'custom_column_data'), 10, 2);
+        add_action('restrict_manage_posts', array($this, 'filter_by_group'));
+        add_action('pre_get_posts', array($this, 'filter_query'));
+
+        // Eksport funktion
         add_action('admin_post_sc_export_txt', array($this, 'handle_txt_export'));
         add_action('admin_menu', array($this, 'add_export_page'));
         add_action('admin_menu', function() {
             global $submenu;
             if ($this->does_menu_exists()) remove_submenu_page($this->menu_slug, $this->menu_slug);
-            if ( !isset($submenu[$this->menu_slug]) ) return;
+            if (!isset($submenu[$this->menu_slug])) return;
             $items = $submenu[$this->menu_slug];
             $postsKey = null;
             $exportKey = null;
@@ -60,15 +61,23 @@ class SC_Questions_Plugin {
             $submenu[$this->menu_slug] = array_values($items);
         }, 999);
         add_action('admin_head', array($this, 'fix_svg_size'));
-	}
+    }
+
+    public function load_textdomain() {
+        load_plugin_textdomain(
+                'sc-questions',
+                false,
+                dirname(plugin_basename(__FILE__)) . '/languages'
+        );
+    }
 
     private function does_menu_exists() {
         global $menu;
         if (!is_array($menu)) {
             return false;
         }
-        foreach ( $menu as $item ) {
-            if ( $item[2] == $this->menu_slug ) {
+        foreach ($menu as $item) {
+            if ($item[2] == $this->menu_slug) {
                 return true;
             }
         }
@@ -77,47 +86,42 @@ class SC_Questions_Plugin {
 
     function fix_svg_size() {
         echo '
-    <style>
-        /* Målret billedet i dit specifikke menupunkt */
-        #toplevel_page_star-citizen .wp-menu-image img {
-            width: 20px !important;   /* WordPress ikoner er 20x20 */
-            height: 20px !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-sizing: border-box;
-            display: inline-block;
-            vertical-align: middle;
-        }
+	<style>
+		#toplevel_page_star-citizen .wp-menu-image img {
+			width: 20px !important;
+			height: 20px !important;
+			padding: 0 !important;
+			margin: 0 !important;
+			box-sizing: border-box;
+			display: inline-block;
+			vertical-align: middle;
+		}
 
-        /* Centrer ikonet i cirklen/feltet */
-        #toplevel_page_star-citizen .wp-menu-image {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
+		#toplevel_page_star-citizen .wp-menu-image {
+			display: flex !important;
+			align-items: center;
+			justify-content: center;
+		}
+	</style>
 ';
     }
 
-    /**
-     * 5. Eksport Funktion
-     */
     public function add_export_page() {
         if (!$this->does_menu_exists()) {
             add_menu_page(
-                    'Star Citizen', // Page title
-                    'Star Citizen', // Menu title
-                    'manage_options', // Capability
-                    $this->menu_slug, // Menu slug
-                    null, // Callback function
-                    plugins_url('sc-questions/assets/scc-ogo.svg', 'sc-questions'), // Icon (WordPress Dashicon)
+                    __('Star Citizen', 'sc-questions'),
+                    __('Star Citizen', 'sc-questions'),
+                    'manage_options',
+                    $this->menu_slug,
+                    null,
+                    plugins_url('sc-questions/assets/scc-ogo.svg', 'sc-questions'),
                     26
             );
         }
         add_submenu_page(
                 $this->menu_slug,
-                'Export Questions',
-                'Export Questions',
+                __('Export Questions', 'sc-questions'),
+                __('Export Questions', 'sc-questions'),
                 'manage_options',
                 'sc-export',
                 array($this, 'render_export_page'),
@@ -128,10 +132,10 @@ class SC_Questions_Plugin {
     public function register_post_type() {
         register_post_type('sc_question', array(
                 'labels' => array(
-                        'name' => 'Questions',
-                        'singular_name' => 'Question',
-                        'add_new_item' => 'Add a questions',
-                        'search_items' => 'Search for question',
+                        'name' => __('Questions', 'sc-questions'),
+                        'singular_name' => __('Question', 'sc-questions'),
+                        'add_new_item' => __('Add a question', 'sc-questions'),
+                        'search_items' => __('Search for questions', 'sc-questions'),
                 ),
                 'public' => false,
                 'show_ui' => true,
@@ -143,300 +147,269 @@ class SC_Questions_Plugin {
     }
 
     private function get_text($key) {
-		// Ordbog
-		$translations = array(
-			'en' => array(
-				'header' => 'Ask a Question',
-				'group' => 'Group',
-				'handle_label' => 'RSI Handle:',
-				'handle_desc' => 'We will verify that your citizen profile exists, and you can ONLY post 1 question.<br>If you want your question deleted or changed you must write a message to <a href="https://robertsspaceindustries.com/spectrum/messages/member/DK-Raven" target="_blank">DK-Raven</a> on Spectrum.',
-				'question_label' => 'Your Question:',
-				'submit_btn' => 'Submit Question',
-				'list_header' => 'Submitted Questions',
-				'no_questions' => 'No questions in this group yet.',
-				'err_handle_fail' => 'Error: Could not find RSI Handle "%s". Please check spelling.',
-				'err_duplicate' => 'Error: You have already asked a question in this group (%s).',
-				'err_tech' => 'A technical error occurred. Please try again.',
-				'success' => 'Thank you! Your question has been received.',
-				'export_handle' => 'Handle',
-				'export_question' => 'Question'
-			),
-			'da' => array(
-				'header' => 'Stil et spørgsmål',
-				'group' => 'Gruppe',
-				'handle_label' => 'RSI Handle:',
-				'handle_desc' => 'Vi tjekker om din citizen profil findes, og du kan kun stille 1 spørgsmål.<br>Ønsker du at slette eller ændre dit spørgsmål skal du skrive en direkte besked til <a href="https://robertsspaceindustries.com/spectrum/messages/member/DK-Raven" target="_blank">DK-Raven</a> på Spectrum.',
-				'question_label' => 'Dit spørgsmål:',
-				'submit_btn' => 'Indsend Spørgsmål',
-				'list_header' => 'Indsendte spørgsmål',
-				'no_questions' => 'Ingen spørgsmål i denne gruppe endnu.',
-				'err_handle_fail' => 'Fejl: Kunne ikke finde RSI Handle "%s". Tjek stavemåden.',
-				'err_duplicate' => 'Fejl: Du har allerede stillet et spørgsmål i denne gruppe (%s).',
-				'err_tech' => 'Der opstod en teknisk fejl. Prøv igen.',
-				'success' => 'Tak! Dit spørgsmål er modtaget.',
-				'export_handle' => 'Handle',
-				'export_question' => 'Spørgsmål'
-			)
-		);
+        $translations = array(
+                'header' => __('Ask a Question', 'sc-questions'),
+                'group' => __('For the event', 'sc-questions'),
+                'handle_label' => __('RSI Handle:', 'sc-questions'),
+                'handle_desc' => __('We will verify that your citizen profile exists, and you can ONLY post 1 question.<br>If you want your question deleted or changed you must write a message to <a href="https://robertsspaceindustries.com/spectrum/messages/member/DK-Raven" target="_blank">DK-Raven</a> on Spectrum.', 'sc-questions'),
+                'question_label' => __('Your Question:', 'sc-questions'),
+                'submit_btn' => __('Submit Question', 'sc-questions'),
+                'list_header' => __('Submitted Questions', 'sc-questions'),
+                'no_questions' => __('No questions in this group yet.', 'sc-questions'),
+                'err_handle_fail' => __('Error: Could not find RSI Handle "%s". Please check spelling.', 'sc-questions'),
+                'err_duplicate' => __('Error: You have already asked a question in this group (%s).', 'sc-questions'),
+                'err_tech' => __('A technical error occurred. Please try again.', 'sc-questions'),
+                'success' => __('Thank you! Your question has been received.', 'sc-questions'),
+                'export_handle' => __('Handle', 'sc-questions'),
+                'export_question' => __('Question', 'sc-questions'),
+        );
 
-		return isset($translations[$this->current_lang][$key]) ? $translations[$this->current_lang][$key] : $key;
-	}
+        return isset($translations[$key]) ? $translations[$key] : $key;
+    }
 
-	public function render_shortcode($atts) {
-		$atts = shortcode_atts(array(
-			'group' => 'default',
-			'section' => 'questions',
-		), $atts);
+    public function render_shortcode($atts) {
+        $atts = shortcode_atts(array(
+                'group' => 'default',
+                'section' => 'questions',
+        ), $atts);
 
-		$group = sanitize_text_field($atts['group']);
-		$message = '';
+        $group = sanitize_text_field($atts['group']);
+        $message = '';
 
-		// Håndter formular
-		if (isset($_POST['sc_submit_question']) && isset($_POST['sc_nonce']) && wp_verify_nonce($_POST['sc_nonce'], 'sc_new_question')) {
-			$message = $this->handle_form_submission($group);
-		}
+        if (isset($_POST['sc_submit_question']) && isset($_POST['sc_nonce']) && wp_verify_nonce($_POST['sc_nonce'], 'sc_new_question')) {
+            $message = $this->handle_form_submission($group);
+        }
 
-		ob_start();
-		?>
-		<div class="sc-questions-wrapper">
+        ob_start();
+        ?>
+        <div class="sc-questions-wrapper">
+            <?php if (!empty($message)): ?>
+                <div class="sc-message" style="background: #f0f0f1; padding: 10px; margin-bottom: 20px; border-left: 4px solid #0073aa;">
+                    <?php echo $message; ?>
+                </div>
+            <?php endif; ?>
 
-			<?php if (!empty($message)): ?>
-				<div class="sc-message" style="background: #f0f0f1; padding: 10px; margin-bottom: 20px; border-left: 4px solid #0073aa;">
-					<?php echo $message; ?>
-				</div>
-			<?php endif; ?>
+            <form method="post" action="#<?php echo esc_attr($atts['section']); ?>" style="margin-bottom: 40px; border: 1px solid #ddd; padding: 20px;">
+                <h3><?php echo esc_html($this->get_text('header')); ?></h3><h4><?php echo esc_html($this->get_text('group')); ?>: <?php echo esc_html($group); ?></h4>
 
-			<form method="post" action="#<?php echo $atts['section'];?>" style="margin-bottom: 40px; border: 1px solid #ddd; padding: 20px;">
-				<h3><?php echo $this->get_text('header'); ?><br/><?php echo $this->get_text('group'); ?>: <?php echo esc_html($group); ?></h3>
+                <p>
+                    <label for="sc_handle"><?php echo esc_html($this->get_text('handle_label')); ?></label><br>
+                    <input type="text" name="sc_handle" id="sc_handle" required style="width:100%;">
+                    <small><?php echo wp_kses_post($this->get_text('handle_desc')); ?></small>
+                </p>
 
-				<p>
-					<label for="sc_handle"><?php echo $this->get_text('handle_label'); ?></label><br>
-					<input type="text" name="sc_handle" id="sc_handle" required style="width:100%;">
-					<small><?php echo $this->get_text('handle_desc'); ?></small>
-				</p>
+                <p>
+                    <label for="sc_question"><?php echo esc_html($this->get_text('question_label')); ?></label><br>
+                    <textarea name="sc_question" id="sc_question" rows="4" required style="width:100%;"></textarea>
+                </p>
 
-				<p>
-					<label for="sc_question"><?php echo $this->get_text('question_label'); ?></label><br>
-					<textarea name="sc_question" id="sc_question" rows="4" required style="width:100%;"></textarea>
-				</p>
+                <input type="hidden" name="sc_group" value="<?php echo esc_attr($group); ?>">
+                <?php wp_nonce_field('sc_new_question', 'sc_nonce'); ?>
 
-				<input type="hidden" name="sc_group" value="<?php echo esc_attr($group); ?>">
-				<?php wp_nonce_field('sc_new_question', 'sc_nonce'); ?>
+                <input type="submit" name="sc_submit_question" value="<?php echo esc_attr($this->get_text('submit_btn')); ?>" class="button">
+            </form>
 
-				<input type="submit" name="sc_submit_question" value="<?php echo $this->get_text('submit_btn'); ?>" class="button">
-			</form>
+            <h3><?php echo esc_html($this->get_text('list_header')); ?></h3>
+            <?php
+            $args = array(
+                    'post_type' => 'sc_question',
+                    'posts_per_page' => -1,
+                    'meta_query' => array(
+                            array(
+                                    'key' => 'sc_group',
+                                    'value' => $group,
+                                    'compare' => '='
+                            )
+                    )
+            );
+            $query = new WP_Query($args);
 
-			<h3><?php echo $this->get_text('list_header'); ?></h3>
-			<?php
-			$args = array(
-				'post_type' => 'sc_question',
-				'posts_per_page' => -1,
-				'meta_query' => array(
-					array(
-						'key' => 'sc_group',
-						'value' => $group,
-						'compare' => '='
-					)
-				)
-			);
-			$query = new WP_Query($args);
+            if ($query->have_posts()) : ?>
+                <div class="sc-questions-list">
+                    <?php while ($query->have_posts()) : $query->the_post();
+                        $handle = get_post_meta(get_the_ID(), 'sc_handle', true);
+                        ?>
+                        <div class="sc-question">
+                            <p><a href="https://robertsspaceindustries.com/en/citizens/<?php echo esc_attr($handle); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($handle); ?></a></p>
+                            <p><?php the_content(); ?></p>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <p><?php echo esc_html($this->get_text('no_questions')); ?></p>
+            <?php endif; wp_reset_postdata(); ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
 
-			if ($query->have_posts()) : ?>
-				<div class="sc-questions-list">
-					<?php while ($query->have_posts()) : $query->the_post();
-						$handle = get_post_meta(get_the_ID(), 'sc_handle', true);
-						?>
-						<div class="sc-question wp-block wp-block-kubio-column  position-relative wp-block-kubio-column__container d-flex h-col-lg-auto h-col-md-auto h-col-auto" data-kubio="kubio/column"><div class="position-relative wp-block-kubio-column__inner style-local-101-inner d-flex h-flex-basis h-px-lg-3 v-inner-lg-3 h-px-md-3 v-inner-md-3 h-px-3 v-inner-3"><div class="background-wrapper"><div class="background-layer background-layer-media-container-lg"></div><div class="background-layer background-layer-media-container-md"></div><div class="background-layer background-layer-media-container"></div></div><div class="position-relative wp-block-kubio-column__align style-local-101-align h-y-container h-column__content h-column__v-align flex-basis-100 align-self-lg-center align-self-md-center align-self-center"><ul class="wp-block wp-block-kubio-iconlist  position-relative wp-block-kubio-iconlist__outer ul-list-icon list-type-vertical-on-desktop list-type-vertical-on-tablet list-type-vertical-on-mobile" data-kubio="kubio/iconlist"><li class="wp-block wp-block-kubio-iconlistitem  position-relative wp-block-kubio-iconlistitem__item" data-kubio="kubio/iconlistitem"><div class="first-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__text-wrapper"><span class="h-svg-icon wp-block-kubio-iconlistitem__icon" name="font-awesome/question-circle" style="width: 24px;height: 24px;"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="question-circle" viewBox="0 0 1536 1896.0833"><path d="M896 1376v-192q0-14-9-23t-23-9H672q-14 0-23 9t-9 23v192q0 14 9 23t23 9h192q14 0 23-9t9-23zm256-672q0-88-55.5-163T958 425t-170-41q-243 0-371 213-15 24 8 42l132 100q7 6 19 6 16 0 25-12 53-68 86-92 34-24 86-24 48 0 85.5 26t37.5 59q0 38-20 61t-68 45q-63 28-115.5 86.5T640 1020v36q0 14 9 23t23 9h192q14 0 23-9t9-23q0-19 21.5-49.5T972 957q32-18 49-28.5t46-35 44.5-48 28-60.5 12.5-81zm384 192q0 209-103 385.5T1153.5 1561 768 1664t-385.5-103T103 1281.5 0 896t103-385.5T382.5 231 768 128t385.5 103T1433 510.5 1536 896z"></path></svg></span><span class="position-relative wp-block-kubio-iconlistitem__text" style="padding:4px"><a href="https://robertsspaceindustries.com/en/citizens/<?php echo esc_html($handle); ?>" target="_blank"><?php echo esc_html($handle); ?></a></span></div><div class="last-el-spacer position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div><div class="position-relative wp-block-kubio-iconlistitem__divider-wrapper"></div></li></ul><p class="sc-question wp-block wp-block-kubio-text  position-relative wp-block-kubio-text__text" data-kubio="kubio/text"><?php the_content(); ?></p></div></div></div>
-					<?php endwhile; ?>
-				</div>
-			<?php else: ?>
-				<p><?php echo $this->get_text('no_questions'); ?></p>
-			<?php endif; wp_reset_postdata(); ?>
+    private function handle_form_submission($group) {
+        $handle = sanitize_text_field($_POST['sc_handle']);
+        $question = sanitize_textarea_field($_POST['sc_question']);
 
-		</div>
-		<?php
-		return ob_get_clean();
-	}
+        if (!$this->verify_rsi_handle($handle)) {
+            return '<span style="color:red;">' . sprintf(esc_html($this->get_text('err_handle_fail')), esc_html($handle)) . '</span>';
+        }
 
-	private function handle_form_submission($group) {
-		$handle = sanitize_text_field($_POST['sc_handle']);
-		$question = sanitize_textarea_field($_POST['sc_question']);
+        if ($this->has_user_posted_in_group($handle, $group)) {
+            return '<span style="color:red;">' . sprintf(esc_html($this->get_text('err_duplicate')), esc_html($group)) . '</span>';
+        }
 
-		// A. Verificer RSI Handle
-		if (!$this->verify_rsi_handle($handle)) {
-			return '<span style="color:red;">' . sprintf($this->get_text('err_handle_fail'), esc_html($handle)) . '</span>';
-		}
+        $post_id = wp_insert_post(array(
+                'post_type' => 'sc_question',
+                'post_title' => wp_trim_words($question, 10),
+                'post_content' => $question,
+                'post_status' => 'publish',
+        ));
 
-		// B. Tjek for dubletter
-		if ($this->has_user_posted_in_group($handle, $group)) {
-			return '<span style="color:red;">' . sprintf($this->get_text('err_duplicate'), esc_html($group)) . '</span>';
-		}
+        if ($post_id) {
+            update_post_meta($post_id, 'sc_handle', $handle);
+            update_post_meta($post_id, 'sc_group', $group);
+            return '<span style="color:green;">' . esc_html($this->get_text('success')) . '</span>';
+        }
 
-		// C. Opret spørgsmål
-		$post_id = wp_insert_post(array(
-			'post_type' => 'sc_question',
-			'post_title' => wp_trim_words($question, 10),
-			'post_content' => $question,
-			'post_status' => 'publish',
-		));
+        return '<span style="color:red;">' . esc_html($this->get_text('err_tech')) . '</span>';
+    }
 
-		if ($post_id) {
-			update_post_meta($post_id, 'sc_handle', $handle);
-			update_post_meta($post_id, 'sc_group', $group);
-			return '<span style="color:green;">' . $this->get_text('success') . '</span>';
-		}
+    private function verify_rsi_handle($handle) {
+        $url = 'https://robertsspaceindustries.com/en/citizens/' . $handle;
 
-		return '<span style="color:red;">' . $this->get_text('err_tech') . '</span>';
-	}
+        $response = wp_remote_head($url, array(
+                'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
+                'timeout' => 10
+        ));
 
-	/**
-	 * Tjek RSI URL
-	 */
-	private function verify_rsi_handle($handle) {
-		$url = 'https://robertsspaceindustries.com/en/citizens/' . $handle;
+        if (is_wp_error($response)) {
+            $response = wp_remote_get($url, array(
+                    'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
+            ));
+        }
 
-		$response = wp_remote_head($url, array(
-			'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
-			'timeout' => 10
-		));
+        if (is_wp_error($response)) {
+            return false;
+        }
 
-		if (is_wp_error($response)) {
-			$response = wp_remote_get($url, array(
-				'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
-			));
-		}
+        return (wp_remote_retrieve_response_code($response) === 200);
+    }
 
-		if (is_wp_error($response)) {
-			return false;
-		}
+    private function has_user_posted_in_group($handle, $group) {
+        $args = array(
+                'post_type' => 'sc_question',
+                'meta_query' => array(
+                        'relation' => 'AND',
+                        array('key' => 'sc_handle', 'value' => $handle, 'compare' => '='),
+                        array('key' => 'sc_group', 'value' => $group, 'compare' => '=')
+                ),
+                'fields' => 'ids'
+        );
+        $query = new WP_Query($args);
+        return ($query->found_posts > 0);
+    }
 
-		return (wp_remote_retrieve_response_code($response) === 200);
-	}
+    public function set_custom_columns($columns) {
+        $new_columns = array();
+        foreach ($columns as $key => $value) {
+            $new_columns[$key] = $value;
+            if ($key === 'title') {
+                $new_columns['sc_handle'] = __('RSI Handle', 'sc-questions');
+                $new_columns['sc_group'] = __('Group', 'sc-questions');
+            }
+        }
+        return $new_columns;
+    }
 
-	private function has_user_posted_in_group($handle, $group) {
-		$args = array(
-			'post_type' => 'sc_question',
-			'meta_query' => array(
-				'relation' => 'AND',
-				array('key' => 'sc_handle', 'value' => $handle, 'compare' => '='),
-				array('key' => 'sc_group', 'value' => $group, 'compare' => '=')
-			),
-			'fields' => 'ids'
-		);
-		$query = new WP_Query($args);
-		return ($query->found_posts > 0);
-	}
+    public function custom_column_data($column, $post_id) {
+        if ($column === 'sc_handle') {
+            echo esc_html(get_post_meta($post_id, 'sc_handle', true));
+        }
+        if ($column === 'sc_group') {
+            echo esc_html(get_post_meta($post_id, 'sc_group', true));
+        }
+    }
 
-	/**
-	 * 4. Admin Interface (Forbliver standard/engelsk for admin delens skyld, men viser data)
-	 */
-	public function set_custom_columns($columns) {
-		$new_columns = array();
-		foreach($columns as $key => $value) {
-			$new_columns[$key] = $value;
-			if ($key === 'title') {
-				$new_columns['sc_handle'] = 'RSI Handle';
-				$new_columns['sc_group'] = 'Group';
-			}
-		}
-		return $new_columns;
-	}
+    public function filter_by_group($post_type) {
+        if ($post_type !== 'sc_question') return;
+        global $wpdb;
+        $groups = $wpdb->get_col("SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = 'sc_group' ORDER BY meta_value ASC");
+        $current_v = isset($_GET['filter_group']) ? $_GET['filter_group'] : '';
+        ?>
+        <select name="filter_group">
+            <option value=""><?php echo esc_html__('All Groups', 'sc-questions'); ?></option>
+            <?php foreach ($groups as $g): ?>
+                <option value="<?php echo esc_attr($g); ?>" <?php selected($current_v, $g); ?>><?php echo esc_html($g); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <?php
+    }
 
-	public function custom_column_data($column, $post_id) {
-		if ($column === 'sc_handle') {
-			echo esc_html(get_post_meta($post_id, 'sc_handle', true));
-		}
-		if ($column === 'sc_group') {
-			echo esc_html(get_post_meta($post_id, 'sc_group', true));
-		}
-	}
+    public function filter_query($query) {
+        global $pagenow;
+        if (is_admin()
+                && $pagenow === 'edit.php'
+                && isset($_GET['filter_group'])
+                && $_GET['filter_group'] != ''
+                && isset($query->query['post_type'])
+                && $query->query['post_type'] === 'sc_question') {
+            $query->set('meta_key', 'sc_group');
+            $query->set('meta_value', sanitize_text_field($_GET['filter_group']));
+        }
+    }
 
-	public function filter_by_group($post_type) {
-		if ($post_type !== 'sc_question') return;
-		global $wpdb;
-		$groups = $wpdb->get_col("SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = 'sc_group' ORDER BY meta_value ASC");
-		$current_v = isset($_GET['filter_group']) ? $_GET['filter_group'] : '';
-		?>
-		<select name="filter_group">
-			<option value="">All Groups</option>
-			<?php foreach ($groups as $g): ?>
-				<option value="<?php echo esc_attr($g); ?>" <?php selected($current_v, $g); ?>><?php echo esc_html($g); ?></option>
-			<?php endforeach; ?>
-		</select>
-		<?php
-	}
+    public function render_export_page() {
+        global $wpdb;
+        $groups = $wpdb->get_col("SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = 'sc_group'");
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html__('Export Questions', 'sc-questions'); ?></h1>
+            <p><?php echo esc_html__('Select a group to export to a text file.', 'sc-questions'); ?></p>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="sc_export_txt">
+                <select name="export_group">
+                    <option value="all"><?php echo esc_html__('-- All Groups --', 'sc-questions'); ?></option>
+                    <?php foreach ($groups as $g): ?>
+                        <option value="<?php echo esc_attr($g); ?>"><?php echo esc_html($g); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php submit_button(__('Download .txt file', 'sc-questions')); ?>
+            </form>
+        </div>
+        <?php
+    }
 
-	public function filter_query($query) {
-		global $pagenow;
-		if (is_admin()
-            && $pagenow === 'edit.php'
-            && isset($_GET['filter_group'])
-            && $_GET['filter_group'] != ''
-            && isset($query->query['post_type'])
-            && $query->query['post_type'] === 'sc_question') {
-			$query->set('meta_key', 'sc_group');
-			$query->set('meta_value', sanitize_text_field($_GET['filter_group']));
-		}
-	}
+    public function handle_txt_export() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('No access', 'sc-questions'));
+        }
 
-	public function render_export_page() {
-		global $wpdb;
-		$groups = $wpdb->get_col("SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = 'sc_group'");
-		?>
-		<div class="wrap">
-			<h1>Export Questions</h1>
-			<p>Select a group to export to a text file.</p>
-			<form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
-				<input type="hidden" name="action" value="sc_export_txt">
-				<select name="export_group">
-					<option value="all">-- All Groups --</option>
-					<?php foreach ($groups as $g): ?>
-						<option value="<?php echo esc_attr($g); ?>"><?php echo esc_html($g); ?></option>
-					<?php endforeach; ?>
-				</select>
-				<?php submit_button('Download .txt file'); ?>
-			</form>
-		</div>
-		<?php
-	}
+        $group = isset($_POST['export_group']) ? sanitize_text_field($_POST['export_group']) : 'all';
+        $args = array('post_type' => 'sc_question', 'posts_per_page' => -1, 'post_status' => 'publish');
 
-	public function handle_txt_export() {
-		if (!current_user_can('manage_options')) {
-			wp_die('No access');
-		}
+        if ($group !== 'all') {
+            $args['meta_key'] = 'sc_group';
+            $args['meta_value'] = $group;
+        }
 
-		// Bruger fastsat sprog for eksport template (Engelsk standard), eller kan tilpasses.
-		// Her beholder jeg template formatet "Handle: ..." da det er teknisk format.
+        $query = new WP_Query($args);
+        $filename = 'sc-questions-' . date('Y-m-d') . '.txt';
 
-		$group = isset($_POST['export_group']) ? sanitize_text_field($_POST['export_group']) : 'all';
-		$args = array('post_type' => 'sc_question', 'posts_per_page' => -1, 'post_status' => 'publish');
+        header('Content-Type: text/plain');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
-		if ($group !== 'all') {
-			$args['meta_key'] = 'sc_group';
-			$args['meta_value'] = $group;
-		}
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $handle = get_post_meta(get_the_ID(), 'sc_handle', true);
+                $content = wp_strip_all_tags(get_the_content());
 
-		$query = new WP_Query($args);
-		$filename = 'sc-questions-' . date('Y-m-d') . '.txt';
-
-		header('Content-Type: text/plain');
-		header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-		if ($query->have_posts()) {
-			while ($query->have_posts()) {
-				$query->the_post();
-				$handle = get_post_meta(get_the_ID(), 'sc_handle', true);
-				$content = wp_strip_all_tags(get_the_content());
-
-				echo "Handle: " . $handle . "\r\n";
-				echo "Question: " . $content . "\r\n";
-				echo "\r\n--\r\n";
-			}
-		} else {
-			echo "No questions found.";
-		}
-		exit;
-	}
+                echo esc_html__('Handle', 'sc-questions') . ': ' . $handle . "\r\n";
+                echo esc_html__('Question', 'sc-questions') . ': ' . $content . "\r\n";
+                echo "\r\n--\r\n";
+            }
+        } else {
+            echo esc_html__('No questions found.', 'sc-questions');
+        }
+        exit;
+    }
 }
 
 new SC_Questions_Plugin();

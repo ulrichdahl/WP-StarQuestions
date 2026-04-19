@@ -1,0 +1,87 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: sc-questions 1.2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-19 00:00+0000\n"
+"PO-Revision-Date: 2026-04-19 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Danish\n"
+"Language: da_DK\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Ask a Question"
+msgstr "Stil et spørgsmål"
+
+msgid "For the event"
+msgstr "Til begivenheden"
+
+msgid "RSI Handle:"
+msgstr "RSI Handle:"
+
+msgid "We will verify that your citizen profile exists, and you can ONLY post 1 question.<br>If you want your question deleted or changed you must write a message to <a href=\"https://robertsspaceindustries.com/spectrum/messages/member/DK-Raven\" target=\"_blank\">DK-Raven</a> on Spectrum."
+msgstr "Vi tjekker om din citizen profil findes, og du kan kun stille 1 spørgsmål.<br>Ønsker du at få dit spørgsmål slettet eller ændret, skal du skrive en besked til <a href=\"https://robertsspaceindustries.com/spectrum/messages/member/DK-Raven\" target=\"_blank\">DK-Raven</a> på Spectrum."
+
+msgid "Your Question:"
+msgstr "Dit spørgsmål:"
+
+msgid "Submit Question"
+msgstr "Indsend spørgsmål"
+
+msgid "Submitted Questions"
+msgstr "Indsendte spørgsmål"
+
+msgid "No questions in this group yet."
+msgstr "Der er endnu ingen spørgsmål i denne gruppe."
+
+msgid "Error: Could not find RSI Handle \"%s\". Please check spelling."
+msgstr "Fejl: Kunne ikke finde RSI Handle \"%s\". Tjek stavemåden."
+
+msgid "Error: You have already asked a question in this group (%s)."
+msgstr "Fejl: Du har allerede stillet et spørgsmål i denne gruppe (%s)."
+
+msgid "A technical error occurred. Please try again."
+msgstr "Der opstod en teknisk fejl. Prøv igen."
+
+msgid "Thank you! Your question has been received."
+msgstr "Tak! Dit spørgsmål er modtaget."
+
+msgid "Handle"
+msgstr "Handle"
+
+msgid "Question"
+msgstr "Spørgsmål"
+
+msgid "Star Citizen"
+msgstr "Star Citizen"
+
+msgid "Export Questions"
+msgstr "Eksporter spørgsmål"
+
+msgid "Questions"
+msgstr "Spørgsmål"
+
+msgid "Add a question"
+msgstr "Tilføj et spørgsmål"
+
+msgid "Search for questions"
+msgstr "Søg i spørgsmål"
+
+msgid "All Groups"
+msgstr "Alle grupper"
+
+msgid "Select a group to export to a text file."
+msgstr "Vælg en gruppe, der skal eksporteres til en tekstfil."
+
+msgid "-- All Groups --"
+msgstr "-- Alle grupper --"
+
+msgid "Download .txt file"
+msgstr "Download .txt-fil"
+
+msgid "No access"
+msgstr "Ingen adgang"
+
+msgid "No questions found."
+msgstr "Ingen spørgsmål fundet."
