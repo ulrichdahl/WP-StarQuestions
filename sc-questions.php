@@ -3,7 +3,7 @@
  * Plugin Name: Star Citizen Questions
  * Plugin URI: https://github.com/ulrichdahl/WP-StarQuestions
  * Description: Collect questions with RSI Handle verification.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: Ulrich Dahl <ulrich.dahl@gmail.com> / Gemma4
  * Author URI: https://github.com/ulrichdahl/
  * Text Domain: sc-questions
