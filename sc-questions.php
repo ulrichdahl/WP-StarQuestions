@@ -114,7 +114,7 @@ class SC_Questions_Plugin {
                     'manage_options',
                     $this->menu_slug,
                     null,
-                    plugins_url('sc-questions/assets/scc-ogo.svg', 'sc-questions'),
+                    plugins_url('sc-questions/assets/scc-logo.svg', 'sc-questions'),
                     26
             );
         }
